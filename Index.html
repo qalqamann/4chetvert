@@ -1,1 +1,91 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>Text Search Application</title>
+  <script src="https://cdn.jsdelivr.net/pyodide/v0.21.3/full/pyodide.js"></script>
+  <style>
+    body { font-family: Arial; margin: 40px; }
+    textarea, input, button { margin-top: 10px; width: 100%; }
+    #output { margin-top: 20px; white-space: pre-wrap; }
+  </style>
+</head>
+<body>
+  <h2>Python-based Text Search Application</h2>
 
+  <input type="file" id="fileInput"><br>
+  <textarea id="query" rows="2" placeholder="Enter search query (e.g., 'apple AND banana')"></textarea>
+  <button onclick="runPython()">Search</button>
+
+  <div id="output"></div>
+
+  <script type="text/python">
+    import re
+
+    def process_text(text, query):
+        words = re.findall(r'\w+', text.lower())
+
+        def apply_logic(query):
+            tokens = query.upper().split()
+            result = []
+            i = 0
+            while i < len(tokens):
+                if tokens[i] == 'NOT':
+                    i += 1
+                    result = [word for word in words if tokens[i].lower() not in word]
+                elif tokens[i] == 'AND':
+                    i += 1
+                    result = [word for word in result if tokens[i].lower() in word]
+                elif tokens[i] == 'OR':
+                    i += 1
+                    result = list(set(result + [word for word in words if tokens[i].lower() in word]))
+                else:
+                    result = [word for word in words if tokens[i].lower() in word]
+                i += 1
+            return result
+
+        result = apply_logic(query)
+        return "\n".join(set(result)) if result else "No matches found."
+
+  </script>
+
+  <script>
+    let pyodideReady = false;
+    let pyodide;
+
+    async function loadPyodideAndPackages() {
+      pyodide = await loadPyodide();
+      await pyodide.loadPackagesFromImports();
+      pyodideReady = true;
+    }
+
+    loadPyodideAndPackages();
+
+    async function runPython() {
+      if (!pyodideReady) {
+        document.getElementById("output").innerText = "Pyodide is still loading...";
+        return;
+      }
+
+      const file = document.getElementById("fileInput").files[0];
+      if (!file) {
+        document.getElementById("output").innerText = "Please upload a text file.";
+        return;
+      }
+
+      const query = document.getElementById("query").value;
+      const text = await file.text();
+
+      pyodide.globals.set("text", text);
+      pyodide.globals.set("query", query);
+
+      try {
+        const result = pyodide.runPython("process_text(text, query)");
+        document.getElementById("output").innerText = result;
+      } catch (err) {
+        document.getElementById("output").innerText = "Error: " + err;
+      }
+    }
+  </script>
+</body>
+</html>

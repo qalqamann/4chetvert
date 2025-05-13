@@ -1,118 +1,69 @@
 <!DOCTYPE html>
-<html lang="ru">
+<html>
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Проект Мухаммеджана из 10Б класса</title>
-    <style>
-        body {
-            font-family: Arial, sans-serif;
-            background-color: #f0f0f0;
-            color: #333;
-            margin: 0;
-            padding: 20px;
-        }
-        header {
-            background-color: #333;
-            color: #fff;
-            padding: 10px;
-            text-align: center;
-        }
-        main {
-            margin: 20px 0;
-        }
-        #search-section {
-            margin-bottom: 20px;
-        }
-        #search-bar {
-            width: 100%;
-            padding: 10px;
-            border: 1px solid #ccc;
-            border-radius: 5px;
-        }
-        #searchable-content {
-            list-style: none;
-            padding: 0;
-        }
-        #searchable-content li {
-            padding: 5px 0;
-            border-bottom: 1px solid #ccc;
-        }
-        #python-code {
-            background-color: #fff;
-            padding: 20px;
-            border-radius: 5px;
-            box-shadow: 0 0 10px rgba(0,0,0,0.1);
-        }
-        pre {
-            background-color: #e0e0e0;
-            padding: 10px;
-            border-radius: 5px;
-        }
-        code {
-            font-family: monospace;
-        }
-        footer {
-            text-align: center;
-            margin-top: 20px;
-            font-size: 0.8em;
-        }
-    </style>
+  <meta charset="UTF-8">
+  <title>Поиск по текстовому файлу — Нұрали</title>
+  <script src="https://cdn.jsdelivr.net/pyodide/v0.21.3/full/pyodide.js"></script>
+  <style>
+    body { font-family: Arial; margin: 40px; }
+    textarea, input, button { margin-top: 10px; width: 100%; }
+    #output { margin-top: 20px; white-space: pre-wrap; background: #f0f0f0; padding: 10px; }
+  </style>
 </head>
 <body>
-    <header>
-        <h1>Добро пожаловать на страницу Нұрали из 10Б класса</h1>
-    </header>
-    <main>
-        <p>Привет! Меня зовут Нұрали, я учусь в 10Б классе. Это мой проект по информатике.</p>
-        <section id="search-section">
-            <input type="text" id="search-bar" placeholder="Поиск...">
-            <ul id="searchable-content">
-                <li>Python</li>
-                <li>JavaScript</li>
-                <li>HTML</li>
-                <li>CSS</li>
-                <li>def</li>
-                <li>class</li>
-                <li>import</li>
-                <li>from</li>
-                <li>if</li>
-                <li>else</li>
-                <li>for</li>
-                <li>while</li>
-            </ul>
-        </section>
-        <section id="python-code">
-            <h2>Пример кода на Python</h2>
-            <pre><code>
-def factorial(n):
-    if n == 0:
-        return 1
-    else:
-        return n * factorial(n-1)
-            </code></pre>
-            <p>Это рекурсивная функция для вычисления факториала числа.</p>
-            <p>Она проверяет, равно ли n нулю, и в этом случае возвращает 1, так как 0! = 1.</p>
-            <p>В противном случае она возвращает n, умноженное на факториал числа n-1.</p>
-        </section>
-    </main>
-    <footer>
-        <p>Нұрали из 10Б класса</p>
-    </footer>
-    <script>
-        const searchBar = document.getElementById('search-bar');
-        const listItems = document.querySelectorAll('#searchable-content li');
-        searchBar.addEventListener('keyup', function() {
-            const searchTerm = this.value.toLowerCase();
-            listItems.forEach(item => {
-                const text = item.textContent.toLowerCase();
-                if (text.includes(searchTerm)) {
-                    item.style.display = '';
-                } else {
-                    item.style.display = 'none';
-                }
-            });
-        });
-    </script>
+  <h2>Поиск слова в текстовом файле — <strong>Нұрали</strong></h2>
+
+  <input type="file" id="fileInput" accept=".txt"><br>
+  <input type="text" id="searchWord" placeholder="Введите слово для поиска"><br>
+  <button onclick="runPython()">Найти</button>
+
+  <div id="output"></div>
+
+  <script type="text/python">
+    def search_word_in_text(text, word):
+        lines = text.splitlines()
+        word = word.lower()
+        matches = [line for line in lines if word in line.lower()]
+        return "\n".join(matches) if matches else "Слово не найдено в файле."
+  </script>
+
+  <script>
+    let pyodideReady = false;
+    let pyodide;
+
+    async function loadPyodideAndPackages() {
+      pyodide = await loadPyodide();
+      await pyodide.loadPackagesFromImports();
+      pyodideReady = true;
+    }
+
+    loadPyodideAndPackages();
+
+    async function runPython() {
+      if (!pyodideReady) {
+        document.getElementById("output").innerText = "Загрузка Python...";
+        return;
+      }
+
+      const file = document.getElementById("fileInput").files[0];
+      const word = document.getElementById("searchWord").value;
+
+      if (!file || !word) {
+        document.getElementById("output").innerText = "Пожалуйста, выберите файл и введите слово.";
+        return;
+      }
+
+      const text = await file.text();
+      pyodide.globals.set("text", text);
+      pyodide.globals.set("word", word);
+
+      try {
+        const result = pyodide.runPython("search_word_in_text(text, word)");
+        document.getElementById("output").innerText = result;
+      } catch (err) {
+        document.getElementById("output").innerText = "Ошибка: " + err;
+      }
+    }
+  </script>
 </body>
 </html>
